@@ -1,0 +1,5 @@
+Implement copyfiles_block @copying
+Use copyfiles for files<16KB and copyfiles_block for files>=16KB @copying
+Implement is_same_file function to determine if a destination file is he same or only have the same name @conflicts
+Implement renamefile function to rename a file secuencially @conflicts
+Implement question about overwrite or rename files with names conflicts @conflicts

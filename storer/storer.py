@@ -2,8 +2,8 @@ from os import listdir
 from os.path import isfile, join, getsize
 from codetiming import Timer                # https://github.com/realpython/codetiming
 
-SOURCE_PATH = "../source_files"
-DESTINATION_PATH = "../dest_files"
+SOURCE_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/source_files"
+DESTINATION_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/dest_files"
 
 
 def copyfiles(src, dst):
