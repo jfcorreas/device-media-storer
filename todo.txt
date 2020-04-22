@@ -1,8 +1,10 @@
-Implement is_same_file function to determine if a destination file is he same or only have the same name @conflicts
 Implement renamefile function to rename a file secuencially @conflicts
 Implement scanfiles function that returns the number and detail of the conflicts between 2 paths @conflicts
 Implement copy_all_files function that copy all files between a source path and a destination path @copying
 copy_all_files receive args about overwrite or rename files with names conflicts @copying
-copy_all_files use copyfile for files<16KB and copyfile_block for files>=16KB @copying
+Implement copy_files_by_date function that copy only files created between two specified dates @copying
+copy_files_by_date receive args about overwrite or rename files with names conflicts @copying
+Implement progress of copy for the functions copy_all_files and copy_files_by_date @copying
+Convert storer.py to a module with a class that saves the information of each copy task @module
 
 
