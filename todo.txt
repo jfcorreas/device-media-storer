@@ -1,4 +1,3 @@
-Implement renamefile function to rename a file secuencially @conflicts
 Implement scanfiles function that returns the number and detail of the conflicts between 2 paths @conflicts
 Implement copy_all_files function that copy all files between a source path and a destination path @copying
 copy_all_files receive args about overwrite or rename files with names conflicts @copying

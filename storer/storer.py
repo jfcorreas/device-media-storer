@@ -9,7 +9,7 @@ DESTINATION_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/dest_files"
 
 def copyfile_by_blocks(src, dst, block=16384):
     """
-    Copies a file from source to destination
+    Copies a file from source to destination.
 
     :param src: source file path
     :type src: str
@@ -27,16 +27,55 @@ def copyfile_by_blocks(src, dst, block=16384):
 
 def is_the_same_file(f1, f2):
     """
-    Verify if two files are the same file
+    Verify if two files are the same file.
 
     :param f1: path of file 1 for comparison
     :type f1: str
     :param f2: path of file 2 for comparison
     :type f2: str
-    :return: True if the file src and the file dst are the same file (content and stats). If not return False
+    :return: True if the file src and the file dst are the same file (content and stats).
+     If not return False
     :rtype: bool
     """
     return filecmp.cmp(f1, f2, False) & filecmp.cmp(f1, f2, True)
+
+
+def add_str_to_filename(f, s):
+    """
+    Inserts a string into a filename just before the extension. If the filename has no
+    extension, the string is inserted at the end of filename.
+
+    :param f: the filename
+    :type: str
+    :param s: the string to insert
+    :type: str
+    :return: the filename with the string inserted
+    :rtype: str
+    """
+    extension_index = f.rfind('.')
+    flist = list(f)
+    if extension_index > -1:
+        flist.insert(extension_index, s)
+    else:
+        flist.insert(len(f), s)
+    return "".join(flist)
+
+
+def rename_file(f):
+    """
+    Rename a file to avoid name conflicts
+
+    :param f: path of file to rename
+    :type: str
+    :return: the new name (complete path) of the file
+    :rtype: str
+    """
+    ncopy = 1
+    new_name = add_str_to_filename(f, "(" + str(ncopy) + ")")
+    while isfile(new_name):
+        ncopy += 1
+        new_name = add_str_to_filename(f, "(" + str(ncopy) + ")")
+    return new_name
 
 
 sourcefiles = [f for f in listdir(SOURCE_PATH)
@@ -59,9 +98,12 @@ for f in sourcefiles:
         if is_the_same_file(srcfile, dstfile):
             skipped += 1
         else:
+            dstfile = rename_file(dstfile)
+            copyfile_by_blocks(srcfile, dstfile)
             renamed += 1
-    copyfile_by_blocks(srcfile, dstfile)
-    copiedfiles += 1
+    else:
+        copyfile_by_blocks(srcfile, dstfile)
+        copiedfiles += 1
 elapsed_time = t.stop()
 
 print(str(copiedfiles) + " copiados. Tamaño total: {:.2f}".format(round(totalsize/1024/1024, 2)) + "MBs")
