@@ -11,8 +11,10 @@ def copyfile_by_blocks(src, dst, block=16384):
     """
     Copies a file from source to destination
 
-    :param src: source file
-    :param dst: destination file
+    :param src: source file path
+    :type src: str
+    :param dst: destination file path
+    :type dst: str
     :param block: size of the blocks for the copy iterations
     """
     with open(src, 'rb') as fsrc:
@@ -27,9 +29,12 @@ def is_the_same_file(f1, f2):
     """
     Verify if two files are the same file
 
-    :param f1: file 1 for comparison
-    :param f2: file 2 for comparison
+    :param f1: path of file 1 for comparison
+    :type f1: str
+    :param f2: path of file 2 for comparison
+    :type f2: str
     :return: True if the file src and the file dst are the same file (content and stats). If not return False
+    :rtype: bool
     """
     return filecmp.cmp(f1, f2, False) & filecmp.cmp(f1, f2, True)
 
