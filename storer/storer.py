@@ -1,5 +1,5 @@
 import filecmp
-from os import listdir
+from os import scandir
 from os.path import isfile, join, getsize
 from codetiming import Timer                # https://github.com/realpython/codetiming
 
@@ -78,37 +78,44 @@ def rename_file(f):
     return new_name
 
 
-sourcefiles = [f for f in listdir(SOURCE_PATH)
-               if isfile(join(SOURCE_PATH, f))]
+# filecmp.dircmp(SOURCE_PATH,DESTINATION_PATH).report()
+
+sourcefiles = [f for f in scandir(SOURCE_PATH) if f.is_file()]   # https://www.python.org/dev/peps/pep-0471/  @scandir
+
 print(r"Número de Ficheros en " + SOURCE_PATH + " = " + str(len(sourcefiles)))
+totalsize = sum(f.stat().st_size for f in sourcefiles if f.is_file())
+print("Tamaño total: {:.2f}MBs".format(round(totalsize/1024/1024, 2)))
+
+skippedfiles = 0
+renamedfiles = 0
+copiedfiles = 0
+copiedsize = 0
+deltafiles = 0
 
 print("Copiando...")
-
-skipped = 0
-renamed = 0
-copiedfiles = 0
-totalsize = 0
 t = Timer(name="class", logger=None)
 t.start()
+
 for f in sourcefiles:
-    srcfile = join(SOURCE_PATH, f)
-    dstfile = join(DESTINATION_PATH, f)
-    totalsize += getsize(srcfile)
+    srcfile = f.path
+    dstfile = join(DESTINATION_PATH, f.name)
     if isfile(dstfile):
         if is_the_same_file(srcfile, dstfile):
-            skipped += 1
+            skippedfiles += 1
         else:
             dstfile = rename_file(dstfile)
             copyfile_by_blocks(srcfile, dstfile)
-            renamed += 1
+            copiedsize += f.stat().st_size
+            renamedfiles += 1
+            copiedfiles += 1
     else:
         copyfile_by_blocks(srcfile, dstfile)
+        copiedsize += f.stat().st_size
         copiedfiles += 1
+
 elapsed_time = t.stop()
-
-print(str(copiedfiles) + " copiados. Tamaño total: {:.2f}".format(round(totalsize/1024/1024, 2)) + "MBs")
-print("Tiempo transcurrido: {:.4f}".format(round(elapsed_time, 4)) + " segundos")
-print("Ficheros idénticos (saltar): " + str(skipped))
-print("Ficheros para renombrar: " + str(renamed))
-
+print("Ficheros con mismo nombre pero distintos (renombrar): %d " % renamedfiles)
+print("Ficheros idénticos (saltar): %d" % skippedfiles)
+print("%d copiados. Tamaño copiado: {:.2f}MBs".format(round(copiedsize/1024/1024, 2)) % copiedfiles)
+print("Tiempo transcurrido: {:.4f} segundos".format(round(elapsed_time, 4)))
 
