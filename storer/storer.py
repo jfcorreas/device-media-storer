@@ -1,6 +1,6 @@
 import filecmp
 from os import scandir
-from os.path import isfile, join, getsize
+from os.path import isfile, join
 from codetiming import Timer                # https://github.com/realpython/codetiming
 
 SOURCE_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/source_files"
@@ -78,44 +78,68 @@ def rename_file(f):
     return new_name
 
 
+class CopyTask:
+    """
+    Do a file copy tasks and store the results.
+    Prevents multiple executions of the copy task.
+    """
+    def __init__(self, srcdir, dstdir):
+        self.srcdir = srcdir
+        self.dstdir = dstdir
+        self.executed = False
+        self.skippedfiles = 0
+        self.renamedfiles = 0
+        self.copiedfiles = 0
+        self.copiedsize = 0
+        # https://www.python.org/dev/peps/pep-0471/  @scandir
+        self.sourcefiles = [f for f in scandir(SOURCE_PATH) if f.is_file()]
+        self.totalsize = sum(f.stat().st_size for f in self.sourcefiles if f.is_file())
+
+    def __repr__(self):     # TODO add more information
+        return "Task for copy files from {} to {}".format(self.srcdir, self.dstdir)
+
+    def copy_all_files(self):
+        """
+        Copy all the files defined in the task
+
+        :return: the number of files copied. If the copy already was executed, returns -1
+        """
+        if not self.executed:
+            self.executed = True
+            for f in self.sourcefiles:
+                srcfile = f.path
+                dstfile = join(DESTINATION_PATH, f.name)
+                if isfile(dstfile):
+                    if is_the_same_file(srcfile, dstfile):
+                        self.skippedfiles += 1
+                    else:
+                        dstfile = rename_file(dstfile)
+                        copyfile_by_blocks(srcfile, dstfile)
+                        self.copiedsize += f.stat().st_size
+                        self.renamedfiles += 1
+                        self.copiedfiles += 1
+                else:
+                    copyfile_by_blocks(srcfile, dstfile)
+                    self.copiedsize += f.stat().st_size
+                    self.copiedfiles += 1
+            return self.copiedfiles
+        else:
+            return -1
+
+
 # filecmp.dircmp(SOURCE_PATH,DESTINATION_PATH).report()
 
-sourcefiles = [f for f in scandir(SOURCE_PATH) if f.is_file()]   # https://www.python.org/dev/peps/pep-0471/  @scandir
-
-print(r"Número de Ficheros en " + SOURCE_PATH + " = " + str(len(sourcefiles)))
-totalsize = sum(f.stat().st_size for f in sourcefiles if f.is_file())
-print("Tamaño total: {:.2f}MBs".format(round(totalsize/1024/1024, 2)))
-
-skippedfiles = 0
-renamedfiles = 0
-copiedfiles = 0
-copiedsize = 0
-deltafiles = 0
-
+copia1 = CopyTask(SOURCE_PATH, DESTINATION_PATH)
+print(copia1)
+print(r"Número de Ficheros en {} = {}".format(SOURCE_PATH, len(copia1.sourcefiles)))
+print("Tamaño total: {:.2f}MBs".format(round(copia1.totalsize/1024/1024, 2)))
 print("Copiando...")
 t = Timer(name="class", logger=None)
 t.start()
-
-for f in sourcefiles:
-    srcfile = f.path
-    dstfile = join(DESTINATION_PATH, f.name)
-    if isfile(dstfile):
-        if is_the_same_file(srcfile, dstfile):
-            skippedfiles += 1
-        else:
-            dstfile = rename_file(dstfile)
-            copyfile_by_blocks(srcfile, dstfile)
-            copiedsize += f.stat().st_size
-            renamedfiles += 1
-            copiedfiles += 1
-    else:
-        copyfile_by_blocks(srcfile, dstfile)
-        copiedsize += f.stat().st_size
-        copiedfiles += 1
-
+copia1.copy_all_files()
 elapsed_time = t.stop()
-print("Ficheros con mismo nombre pero distintos (renombrar): %d " % renamedfiles)
-print("Ficheros idénticos (saltar): %d" % skippedfiles)
-print("%d copiados. Tamaño copiado: {:.2f}MBs".format(round(copiedsize/1024/1024, 2)) % copiedfiles)
+print("Ficheros con mismo nombre pero distintos (renombrar): {}".format(copia1.renamedfiles))
+print("Ficheros idénticos (saltar): {}".format(copia1.skippedfiles))
+print("Ficheros copiados: {} (tamaño: {:.2f}MBs)".format(copia1.copiedfiles, round(copia1.copiedsize/1024/1024, 2)))
 print("Tiempo transcurrido: {:.4f} segundos".format(round(elapsed_time, 4)))
 

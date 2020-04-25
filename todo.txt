@@ -1,9 +1,6 @@
-Implement copy_all_files function that copy all files between a source path and a destination path @copying
-copy_all_files receive args about overwrite or rename files with names conflicts @copying
-Implement copy_files_by_date function that copy only files created between two specified dates @copying
-copy_files_by_date receive args about overwrite or rename files with names conflicts @copying
-Add to copy_all_files parameter to copy directories recursively @copying
+Implement copy_files_by_date function into CopyTask that copy only files created between two specified dates @copying
 Implement progress of copy for the functions copy_all_files and copy_files_by_date @copying
 Convert storer.py to a module with a class that saves the information of each copy task @module
+Implement copy_all_files_recursively function into CopyTask that copy recursively all files and subdirectories @copying
 
 
