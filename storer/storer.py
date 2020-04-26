@@ -79,23 +79,6 @@ def rename_file(f):
     return new_name
 
 
-def is_valid_datetime(date_text):
-    """
-    Check if a string is a valid datetime
-
-    :param date_text: the string to validate
-    :type date_text: str
-    :return: True if date_text is a valid datetime
-    """
-    try:
-        datetime.strptime(date_text, '%Y/%m/%d')
-        return True
-    except ValueError:
-        raise ValueError("Input date must be in format 'YYYY/MM/DD'")
-    except TypeError:
-        return False
-
-
 class CopyTask:
     """
     Do a file copy tasks and store the results.
@@ -129,20 +112,23 @@ class CopyTask:
         if not self.executed:
             self.executed = True
             if from_date or to_date:
-                if is_valid_datetime(to_date):
+                if type(to_date) is datetime:
                     to_date += timedelta(days=1)
                 selected_files = []
                 for f in self.sourcefiles:
                     mdate = datetime.fromtimestamp(f.stat().st_mtime)
-                    if is_valid_datetime(from_date) and is_valid_datetime(to_date):
+                    if type(from_date) is datetime and type(to_date) is datetime:
                         if from_date <= mdate < to_date:
                             selected_files.append(f)
-                    elif is_valid_datetime(from_date):
+                    elif type(from_date) is datetime:
                         if from_date <= mdate:
                             selected_files.append(f)
-                    elif is_valid_datetime(to_date):
+                    elif type(to_date) is datetime:
                         if mdate < to_date:
                             selected_files.append(f)
+                    else:
+                        raise TypeError("Both optional arguments are invalid dates: "
+                                        "from_date={}, to_date={}".format(from_date, to_date))
                 return self.__copy_files(selected_files)
             else:
                 return self.__copy_files(self.sourcefiles)
