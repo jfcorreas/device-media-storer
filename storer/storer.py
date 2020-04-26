@@ -2,6 +2,7 @@ import filecmp
 from os import scandir
 from os.path import isfile, join
 from codetiming import Timer                # https://github.com/realpython/codetiming
+from datetime import datetime, timedelta
 
 SOURCE_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/source_files"
 DESTINATION_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/dest_files"
@@ -66,7 +67,7 @@ def rename_file(f):
     Rename a file to avoid name conflicts
 
     :param f: path of file to rename
-    :type: str
+    :type f: str
     :return: the new name (complete path) of the file
     :rtype: str
     """
@@ -76,6 +77,23 @@ def rename_file(f):
         ncopy += 1
         new_name = add_str_to_filename(f, "(" + str(ncopy) + ")")
     return new_name
+
+
+def is_valid_datetime(date_text):
+    """
+    Check if a string is a valid datetime
+
+    :param date_text: the string to validate
+    :type date_text: str
+    :return: True if date_text is a valid datetime
+    """
+    try:
+        datetime.strptime(date_text, '%Y/%m/%d')
+        return True
+    except ValueError:
+        raise ValueError("Input date must be in format 'YYYY/MM/DD'")
+    except TypeError:
+        return False
 
 
 class CopyTask:
@@ -98,37 +116,67 @@ class CopyTask:
     def __repr__(self):     # TODO add more information
         return "Task for copy files from {} to {}".format(self.srcdir, self.dstdir)
 
-    def copy_all_files(self):
+    def do_copy(self, from_date=None, to_date=None):
         """
-        Copy all the files defined in the task
+        Copy the files defined in the task
 
-        :return: the number of files copied. If the copy already was executed, returns -1
+        :param from_date: Optional. Copy source files with last modified date after to from_date
+        :type from_date: datetime
+        :param to_date: Optional. Copy source files with last modified date previous to to_date
+        :type to_date: datetime
+        :return: the number of copied files. If the copy already runs, return -1
         """
         if not self.executed:
             self.executed = True
-            for f in self.sourcefiles:
-                srcfile = f.path
-                dstfile = join(DESTINATION_PATH, f.name)
-                if isfile(dstfile):
-                    if is_the_same_file(srcfile, dstfile):
-                        self.skippedfiles += 1
-                    else:
-                        dstfile = rename_file(dstfile)
-                        copyfile_by_blocks(srcfile, dstfile)
-                        self.copiedsize += f.stat().st_size
-                        self.renamedfiles += 1
-                        self.copiedfiles += 1
-                else:
-                    copyfile_by_blocks(srcfile, dstfile)
-                    self.copiedsize += f.stat().st_size
-                    self.copiedfiles += 1
-            return self.copiedfiles
+            if from_date or to_date:
+                if is_valid_datetime(to_date):
+                    to_date += timedelta(days=1)
+                selected_files = []
+                for f in self.sourcefiles:
+                    mdate = datetime.fromtimestamp(f.stat().st_mtime)
+                    if is_valid_datetime(from_date) and is_valid_datetime(to_date):
+                        if from_date <= mdate < to_date:
+                            selected_files.append(f)
+                    elif is_valid_datetime(from_date):
+                        if from_date <= mdate:
+                            selected_files.append(f)
+                    elif is_valid_datetime(to_date):
+                        if mdate < to_date:
+                            selected_files.append(f)
+                return self.__copy_files(selected_files)
+            else:
+                return self.__copy_files(self.sourcefiles)
         else:
             return -1
 
+    def __copy_files(self, selected_files):
+        """
+        Private function. Copy the files in selected_files
+
+        :param selected_files: list of files to copy
+        :type selected_files: list
+        :return: the number of copied files.
+        """
+        for f in selected_files:
+            srcfile = f.path
+            dstfile = join(DESTINATION_PATH, f.name)
+            if isfile(dstfile):
+                if is_the_same_file(srcfile, dstfile):
+                    self.skippedfiles += 1
+                else:
+                    dstfile = rename_file(dstfile)
+                    copyfile_by_blocks(srcfile, dstfile)
+                    self.copiedsize += f.stat().st_size
+                    self.renamedfiles += 1
+                    self.copiedfiles += 1
+            else:
+                copyfile_by_blocks(srcfile, dstfile)
+                self.copiedsize += f.stat().st_size
+                self.copiedfiles += 1
+        return self.copiedfiles
+
 
 # filecmp.dircmp(SOURCE_PATH,DESTINATION_PATH).report()
-
 copia1 = CopyTask(SOURCE_PATH, DESTINATION_PATH)
 print(copia1)
 print(r"Número de Ficheros en {} = {}".format(SOURCE_PATH, len(copia1.sourcefiles)))
@@ -136,7 +184,13 @@ print("Tamaño total: {:.2f}MBs".format(round(copia1.totalsize/1024/1024, 2)))
 print("Copiando...")
 t = Timer(name="class", logger=None)
 t.start()
-copia1.copy_all_files()
+
+# copia1.do_copy()
+# copia1.do_copy(datetime.strptime("2019/01/01", "%Y/%m/%d"))
+# copia1.do_copy(to_date=datetime.strptime("2019/01/01", "%Y/%m/%d"))
+copia1.do_copy(datetime.strptime("2019/01/01", "%Y/%m/%d"),
+               datetime.strptime("2019/01/31", "%Y/%m/%d"))
+
 elapsed_time = t.stop()
 print("Ficheros con mismo nombre pero distintos (renombrar): {}".format(copia1.renamedfiles))
 print("Ficheros idénticos (saltar): {}".format(copia1.skippedfiles))
