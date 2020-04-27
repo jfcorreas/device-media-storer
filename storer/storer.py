@@ -3,6 +3,8 @@ from os import scandir
 from os.path import isfile, join
 from codetiming import Timer                # https://github.com/realpython/codetiming
 from datetime import datetime, timedelta
+from tqdm import tqdm
+from time import sleep
 
 SOURCE_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/source_files"
 DESTINATION_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/dest_files"
@@ -84,19 +86,21 @@ class CopyTask:
     Do a file copy tasks and store the results.
     Prevents multiple executions of the copy task.
     """
-    def __init__(self, srcdir, dstdir):
+    def __init__(self, srcdir, dstdir, pbar=True):
         self.srcdir = srcdir
         self.dstdir = dstdir
+        self.progressbar = pbar
         self.executed = False
         self.skippedfiles = 0
         self.renamedfiles = 0
         self.copiedfiles = 0
         self.copiedsize = 0
+        self.selectedsize = 0
         # https://www.python.org/dev/peps/pep-0471/  @scandir
         self.sourcefiles = [f for f in scandir(SOURCE_PATH) if f.is_file()]
-        self.totalsize = sum(f.stat().st_size for f in self.sourcefiles if f.is_file())
+        self.totalsize = sum(f.stat().st_size for f in self.sourcefiles)
 
-    def __repr__(self):     # TODO add more information
+    def __repr__(self):
         return "Task for copy files from {} to {}".format(self.srcdir, self.dstdir)
 
     def do_copy(self, from_date=None, to_date=None):
@@ -143,31 +147,40 @@ class CopyTask:
         :type selected_files: list
         :return: the number of copied files.
         """
-        for f in selected_files:
-            srcfile = f.path
-            dstfile = join(DESTINATION_PATH, f.name)
-            if isfile(dstfile):
-                if is_the_same_file(srcfile, dstfile):
-                    self.skippedfiles += 1
+        self.selectedsize = sum(f.stat().st_size for f in selected_files)
+        with tqdm(total=self.selectedsize, disable=not self.progressbar,
+                  desc="Copying files",
+                  unit="Byte", unit_scale=True, unit_divisor=1024) as pbar:
+            for f in selected_files:
+                srcfile = f.path
+                dstfile = join(DESTINATION_PATH, f.name)
+                if isfile(dstfile):
+                    if is_the_same_file(srcfile, dstfile):
+                        self.skippedfiles += 1
+                        pbar.total -= f.stat().st_size
+                    else:
+                        dstfile = rename_file(dstfile)
+                        copyfile_by_blocks(srcfile, dstfile)
+                        self.copiedsize += f.stat().st_size
+                        self.renamedfiles += 1
+                        self.copiedfiles += 1
+                        pbar.update(f.stat().st_size)
                 else:
-                    dstfile = rename_file(dstfile)
                     copyfile_by_blocks(srcfile, dstfile)
                     self.copiedsize += f.stat().st_size
-                    self.renamedfiles += 1
                     self.copiedfiles += 1
-            else:
-                copyfile_by_blocks(srcfile, dstfile)
-                self.copiedsize += f.stat().st_size
-                self.copiedfiles += 1
+                    pbar.update(f.stat().st_size)
+
         return self.copiedfiles
 
 
 # filecmp.dircmp(SOURCE_PATH,DESTINATION_PATH).report()
-copia1 = CopyTask(SOURCE_PATH, DESTINATION_PATH)
+copia1 = CopyTask(SOURCE_PATH, DESTINATION_PATH, pbar=True)
+
 print(copia1)
 print(r"Número de Ficheros en {} = {}".format(SOURCE_PATH, len(copia1.sourcefiles)))
-print("Tamaño total: {:.2f}MBs".format(round(copia1.totalsize/1024/1024, 2)))
-print("Copiando...")
+print("Tamaño total de la carpeta origen: {:.2f}MBs".format(round(copia1.totalsize/1024/1024, 2)))
+
 t = Timer(name="class", logger=None)
 t.start()
 
@@ -178,6 +191,8 @@ copia1.do_copy(datetime.strptime("2019/01/01", "%Y/%m/%d"),
                datetime.strptime("2019/01/31", "%Y/%m/%d"))
 
 elapsed_time = t.stop()
+
+print("Tamaño seleccionado para copiar: {:.2f}MBs".format(round(copia1.selectedsize/1024/1024, 2)))
 print("Ficheros con mismo nombre pero distintos (renombrar): {}".format(copia1.renamedfiles))
 print("Ficheros idénticos (saltar): {}".format(copia1.skippedfiles))
 print("Ficheros copiados: {} (tamaño: {:.2f}MBs)".format(copia1.copiedfiles, round(copia1.copiedsize/1024/1024, 2)))
