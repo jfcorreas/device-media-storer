@@ -1,4 +1,4 @@
-import filecmp
+from filecmp import cmp
 from os import scandir
 from os.path import isfile, join
 from datetime import datetime, timedelta
@@ -35,7 +35,7 @@ def is_the_same_file(f1, f2):
      If not return False
     :rtype: bool
     """
-    return filecmp.cmp(f1, f2, False) & filecmp.cmp(f1, f2, True)
+    return cmp(f1, f2, False) & cmp(f1, f2, True)
 
 
 def add_str_to_filename(f, s):
