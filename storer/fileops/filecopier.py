@@ -1,13 +1,8 @@
 import filecmp
 from os import scandir
 from os.path import isfile, join
-from codetiming import Timer                # https://github.com/realpython/codetiming
 from datetime import datetime, timedelta
 from tqdm import tqdm
-from time import sleep
-
-SOURCE_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/source_files"
-DESTINATION_PATH = "/home/jfcm02/Proyectos/Desarrollo/TestData/dest_files"
 
 
 def copyfile_by_blocks(src, dst, block=16384):
@@ -96,8 +91,9 @@ class CopyTask:
         self.copiedfiles = 0
         self.copiedsize = 0
         self.selectedsize = 0
+        self.selectedfiles = []
         # https://www.python.org/dev/peps/pep-0471/  @scandir
-        self.sourcefiles = [f for f in scandir(SOURCE_PATH) if f.is_file()]
+        self.sourcefiles = [f for f in scandir(srcdir) if f.is_file()]
         self.totalsize = sum(f.stat().st_size for f in self.sourcefiles)
 
     def __repr__(self):
@@ -118,42 +114,40 @@ class CopyTask:
             if from_date or to_date:
                 if type(to_date) is datetime:
                     to_date += timedelta(days=1)
-                selected_files = []
                 for f in self.sourcefiles:
                     mdate = datetime.fromtimestamp(f.stat().st_mtime)
                     if type(from_date) is datetime and type(to_date) is datetime:
                         if from_date <= mdate < to_date:
-                            selected_files.append(f)
+                            self.selectedfiles.append(f)
                     elif type(from_date) is datetime:
                         if from_date <= mdate:
-                            selected_files.append(f)
+                            self.selectedfiles.append(f)
                     elif type(to_date) is datetime:
                         if mdate < to_date:
-                            selected_files.append(f)
+                            self.selectedfiles.append(f)
                     else:
                         raise TypeError("Both optional arguments are invalid dates: "
                                         "from_date={}, to_date={}".format(from_date, to_date))
-                return self.__copy_files(selected_files)
             else:
-                return self.__copy_files(self.sourcefiles)
+                self.selectedfiles = self.sourcefiles
+            self.selectedsize = sum(f.stat().st_size for f in self.selectedfiles)
+            return self.__copy_files()
         else:
             return -1
 
-    def __copy_files(self, selected_files):
+    def __copy_files(self):
         """
         Private function. Copy the files in selected_files
 
-        :param selected_files: list of files to copy
-        :type selected_files: list
         :return: the number of copied files.
         """
-        self.selectedsize = sum(f.stat().st_size for f in selected_files)
+
         with tqdm(total=self.selectedsize, disable=not self.progressbar,
                   desc="Copying files",
                   unit="Byte", unit_scale=True, unit_divisor=1024) as pbar:
-            for f in selected_files:
+            for f in self.selectedfiles:
                 srcfile = f.path
-                dstfile = join(DESTINATION_PATH, f.name)
+                dstfile = join(self.dstdir, f.name)
                 if isfile(dstfile):
                     if is_the_same_file(srcfile, dstfile):
                         self.skippedfiles += 1
@@ -172,29 +166,3 @@ class CopyTask:
                     pbar.update(f.stat().st_size)
 
         return self.copiedfiles
-
-
-# filecmp.dircmp(SOURCE_PATH,DESTINATION_PATH).report()
-copia1 = CopyTask(SOURCE_PATH, DESTINATION_PATH, pbar=True)
-
-print(copia1)
-print(r"Número de Ficheros en {} = {}".format(SOURCE_PATH, len(copia1.sourcefiles)))
-print("Tamaño total de la carpeta origen: {:.2f}MBs".format(round(copia1.totalsize/1024/1024, 2)))
-
-t = Timer(name="class", logger=None)
-t.start()
-
-# copia1.do_copy()
-# copia1.do_copy(datetime.strptime("2019/01/01", "%Y/%m/%d"))
-# copia1.do_copy(to_date=datetime.strptime("2019/01/01", "%Y/%m/%d"))
-copia1.do_copy(datetime.strptime("2019/01/01", "%Y/%m/%d"),
-               datetime.strptime("2019/01/31", "%Y/%m/%d"))
-
-elapsed_time = t.stop()
-
-print("Tamaño seleccionado para copiar: {:.2f}MBs".format(round(copia1.selectedsize/1024/1024, 2)))
-print("Ficheros con mismo nombre pero distintos (renombrar): {}".format(copia1.renamedfiles))
-print("Ficheros idénticos (saltar): {}".format(copia1.skippedfiles))
-print("Ficheros copiados: {} (tamaño: {:.2f}MBs)".format(copia1.copiedfiles, round(copia1.copiedsize/1024/1024, 2)))
-print("Tiempo transcurrido: {:.4f} segundos".format(round(elapsed_time, 4)))
-
