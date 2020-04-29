@@ -1,3 +1,3 @@
 Implement copy_all_files_recursively function into CopyTask that copy recursively all files and subdirectories @copying
-
+Implement a GUI in PyQt5 that uses the CopyTask class @GUI
 
