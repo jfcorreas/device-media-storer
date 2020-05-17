@@ -89,7 +89,19 @@ class TestIsTheSameFile(TestFileOps):
                 Path(self.src_files_abs_path).joinpath('file.txt'),
                 Path(self.dst_files_abs_path).joinpath('file.txt')),
             True,
-            'File with extension')
+            'File with same name and same content an stats')
+        self.assertEqual(
+            filecopier.is_the_same_file(
+                Path(self.src_files_abs_path).joinpath('file.txt'),
+                Path(self.dst_files_abs_path).joinpath('othername.txt')),
+            True,
+            'File with same content an stats but distinct name')
+        self.assertEqual(
+            filecopier.is_the_same_file(
+                Path(self.src_files_abs_path).joinpath('distinctfile.txt'),
+                Path(self.dst_files_abs_path).joinpath('distinctfile.txt')),
+            False,
+            'File with same name but distinct content an stats')
 
 
 if __name__ == '__main__':
