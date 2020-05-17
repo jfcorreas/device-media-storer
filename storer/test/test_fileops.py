@@ -104,5 +104,35 @@ class TestIsTheSameFile(TestFileOps):
             'File with same name but distinct content an stats')
 
 
+class TestCopyFileByBlocks(TestFileOps):
+
+    def test_copyfile_by_blocks(self):
+        filecopier.copyfile_by_blocks(
+            Path(self.src_files_abs_path).joinpath('file.txt'),
+            Path(self.dst_files_abs_path).joinpath('file_16384.txt')
+        )
+        filecopier.copyfile_by_blocks(
+            Path(self.src_files_abs_path).joinpath('file.txt'),
+            Path(self.dst_files_abs_path).joinpath('file_8192.txt'),
+            8192
+        )
+
+        self.assertEqual(
+            filecopier.is_the_same_file(
+                Path(self.src_files_abs_path).joinpath('file.txt'),
+                Path(self.dst_files_abs_path).joinpath('file_16384.txt')),
+            True,
+            'File with default block size: 16384')
+        self.assertEqual(
+            filecopier.is_the_same_file(
+                Path(self.src_files_abs_path).joinpath('file.txt'),
+                Path(self.dst_files_abs_path).joinpath('file_8192.txt')),
+            True,
+            'File with block size of 8192')
+
+        Path.unlink(Path(self.dst_files_abs_path).joinpath('file_16384.txt'))
+        Path.unlink(Path(self.dst_files_abs_path).joinpath('file_8192.txt'))
+
+
 if __name__ == '__main__':
     unittest.main()
