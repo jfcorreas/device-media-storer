@@ -5,10 +5,11 @@ from shutil import copyfile
 from pathlib import Path
 
 
-class TestFileOps(unittest.TestCase):
+class TestFileOpsAuxFunctions(unittest.TestCase):
     def setUp(self):
         self.src_files_abs_path = Path().absolute().joinpath('storer').joinpath('test').joinpath('src_files')
         self.dst_files_abs_path = Path().absolute().joinpath('storer').joinpath('test').joinpath('dst_files')
+        Path.mkdir(self.dst_files_abs_path, exist_ok=True)
 
         self.mock_files = []
         copyfile(Path(self.src_files_abs_path).joinpath('file.txt'),
@@ -40,7 +41,7 @@ class TestFileOps(unittest.TestCase):
         self.mock_files.clear()
 
 
-class TestRenamingFiles(TestFileOps):
+class TestRenamingFiles(TestFileOpsAuxFunctions):
 
     def test_add_str_to_filename(self):
         self.assertEqual(
@@ -81,7 +82,7 @@ class TestRenamingFiles(TestFileOps):
             'File with dots before extension')
 
 
-class TestIsTheSameFile(TestFileOps):
+class TestIsTheSameFile(TestFileOpsAuxFunctions):
 
     def test_is_the_same_file(self):
         self.assertEqual(
@@ -104,7 +105,7 @@ class TestIsTheSameFile(TestFileOps):
             'File with same name but distinct content an stats')
 
 
-class TestCopyFileByBlocks(TestFileOps):
+class TestCopyFileByBlocks(TestFileOpsAuxFunctions):
 
     def test_copyfile_by_blocks(self):
         filecopier.copyfile_by_blocks(
@@ -132,6 +133,23 @@ class TestCopyFileByBlocks(TestFileOps):
 
         Path.unlink(Path(self.dst_files_abs_path).joinpath('file_16384.txt'))
         Path.unlink(Path(self.dst_files_abs_path).joinpath('file_8192.txt'))
+
+
+class TestCopyTask(unittest.TestCase):
+
+    def setUp(self):
+        self.src_files_abs_path = Path().absolute().joinpath('storer').joinpath('test').joinpath('src_files')
+        self.dst_files_abs_path = Path().absolute().joinpath('storer').joinpath('test').joinpath('dst_files')
+
+    def test_do_copy_basic(self):
+        copy1 = filecopier.CopyTask(self.src_files_abs_path, self.dst_files_abs_path)
+        self.assertEqual(len(copy1.sourcefiles), 2, '#Target files')
+
+        copy1.do_copy()
+        self.assertEqual(copy1.copiedfiles, 2, '#Copied Files')
+        self.assertEqual(copy1.executed, True, 'Copy was executed')
+        self.assertEqual(copy1.renamedfiles, 0, '#Renamed Files')
+        self.assertEqual(copy1.skippedfiles, 0, '#Skipped Files')
 
 
 if __name__ == '__main__':
