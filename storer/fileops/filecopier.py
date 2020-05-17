@@ -59,7 +59,7 @@ def add_str_to_filename(f, s):
     return "".join(flist)
 
 
-def rename_file(f):
+def sequential_filename(f):
     """
     Rename a file to avoid name conflicts
 
@@ -68,11 +68,12 @@ def rename_file(f):
     :return: the new name (complete path) of the file
     :rtype: str
     """
+    
     ncopy = 1
-    new_name = add_str_to_filename(f, "(" + str(ncopy) + ")")
+    new_name = add_str_to_filename(str(f), "(" + str(ncopy) + ")")
     while isfile(new_name):
         ncopy += 1
-        new_name = add_str_to_filename(f, "(" + str(ncopy) + ")")
+        new_name = add_str_to_filename(str(f), "(" + str(ncopy) + ")")
     return new_name
 
 
@@ -153,7 +154,7 @@ class CopyTask:
                         self.skippedfiles += 1
                         pbar.total -= f.stat().st_size
                     else:
-                        dstfile = rename_file(dstfile)
+                        dstfile = sequential_filename(dstfile)
                         copyfile_by_blocks(srcfile, dstfile)
                         self.copiedsize += f.stat().st_size
                         self.renamedfiles += 1
